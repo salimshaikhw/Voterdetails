@@ -16,6 +16,7 @@ export default function ReportTab() {
   const [error, setError] = useState(null);
   const [totalBookings, setTotalBookings] = useState(0);
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
+  const [showFilters, setShowFilters] = useState(false); // Accordion state
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -219,6 +220,17 @@ export default function ReportTab() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h2>📊 Booking Reports</h2>
         <div style={{ display: "flex", gap: "10px" }}>
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            style={{ 
+              background: showFilters ? "#6c757d" : "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}
+          >
+            <span>{showFilters ? "▲" : "▼"}</span> Filters
+          </button>
           <button onClick={handleDownloadExcel} style={{ background: "#28a745" }}>
             📥 Download Excel
           </button>
@@ -228,207 +240,237 @@ export default function ReportTab() {
         </div>
       </div>
 
-      {/* FILTERS SECTION */}
-      <div style={{ 
-        border: "1px solid #ddd", 
-        padding: "15px", 
-        borderRadius: "5px",
-        marginBottom: "20px",
-        background: "#f9f9f9"
-      }}>
-        <h3 style={{ marginTop: 0 }}>Filters</h3>
-        
-        {/* Row 1: Geographic Filters */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginBottom: "10px" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "12px", marginBottom: "5px" }}>Zone</label>
-            <select 
-              value={filters.zoneId} 
-              onChange={(e) => handleFilterChange("zoneId", e.target.value)}
-              style={{ width: "100%" }}
+      {/* ACCORDION FILTERS SECTION */}
+      {showFilters && (
+        <div style={{ 
+          border: "2px solid #e5e7eb", 
+          padding: "20px", 
+          borderRadius: "12px",
+          marginBottom: "20px",
+          background: "#f8fafc",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+          animation: "slideDown 0.3s ease-out"
+        }}>
+          <style>{`
+            @keyframes slideDown {
+              from {
+                opacity: 0;
+                transform: translateY(-10px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+          `}</style>
+          <h3 style={{ marginTop: 0, marginBottom: "16px", fontSize: "18px", color: "#1e40af" }}>Filter Options</h3>
+          
+          {/* Row 1: Zone, District, Constituency, Booth, Town, Center */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "12px", marginBottom: "12px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "11px", marginBottom: "4px", fontWeight: "600", color: "#64748b" }}>Zone</label>
+              <select 
+                value={filters.zoneId} 
+                onChange={(e) => handleFilterChange("zoneId", e.target.value)}
+                style={{ width: "100%", padding: "8px", fontSize: "13px" }}
+              >
+                <option value="">All Zones</option>
+                {zones.map(z => (
+                  <option key={z.id} value={z.id}>{z.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "11px", marginBottom: "4px", fontWeight: "600", color: "#64748b" }}>District</label>
+              <select 
+                value={filters.districtId} 
+                onChange={(e) => handleFilterChange("districtId", e.target.value)}
+                style={{ width: "100%", padding: "8px", fontSize: "13px" }}
+              >
+                <option value="">All Districts</option>
+                {filteredDistricts.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "11px", marginBottom: "4px", fontWeight: "600", color: "#64748b" }}>Constituency</label>
+              <select 
+                value={filters.constituencyNumber} 
+                onChange={(e) => handleFilterChange("constituencyNumber", e.target.value)}
+                style={{ width: "100%", padding: "8px", fontSize: "13px" }}
+              >
+                <option value="">All Constituencies</option>
+                {filteredConstituencies.map(c => (
+                  <option key={c.number} value={c.number}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "11px", marginBottom: "4px", fontWeight: "600", color: "#64748b" }}>Booth #</label>
+              <input 
+                type="number"
+                placeholder="Booth #"
+                value={filters.boothNumber} 
+                onChange={(e) => handleFilterChange("boothNumber", e.target.value)}
+                style={{ width: "100%", padding: "8px", fontSize: "13px" }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "11px", marginBottom: "4px", fontWeight: "600", color: "#64748b" }}>Town</label>
+              <select 
+                value={filters.townId} 
+                onChange={(e) => handleFilterChange("townId", e.target.value)}
+                style={{ width: "100%", padding: "8px", fontSize: "13px" }}
+              >
+                <option value="">All Towns</option>
+                {towns.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "11px", marginBottom: "4px", fontWeight: "600", color: "#64748b" }}>Center</label>
+              <select 
+                value={filters.centerId} 
+                onChange={(e) => handleFilterChange("centerId", e.target.value)}
+                style={{ width: "100%", padding: "8px", fontSize: "13px" }}
+              >
+                <option value="">All Centers</option>
+                {centers.map(c => (
+                  <option key={c.id} value={c.id}>{c.centerAddress || c.address || c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Row 2: Karyakarta, Status, Start Date, End Date, Apply Button */}
+          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "11px", marginBottom: "4px", fontWeight: "600", color: "#64748b" }}>Karyakarta Name</label>
+              <input 
+                type="text"
+                placeholder="Search karyakarta..."
+                value={filters.karyakartaName} 
+                onChange={(e) => handleFilterChange("karyakartaName", e.target.value)}
+                style={{ width: "100%", padding: "8px", fontSize: "13px" }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "11px", marginBottom: "4px", fontWeight: "600", color: "#64748b" }}>Status</label>
+              <select 
+                value={filters.status} 
+                onChange={(e) => handleFilterChange("status", e.target.value)}
+                style={{ width: "100%", padding: "8px", fontSize: "13px" }}
+              >
+                <option value="">All Status</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Pending">Pending</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "11px", marginBottom: "4px", fontWeight: "600", color: "#64748b" }}>Start Date</label>
+              <input 
+                type="text"
+                placeholder="15/01/2026"
+                value={filters.startDate} 
+                onChange={(e) => handleFilterChange("startDate", e.target.value)}
+                style={{ width: "100%", padding: "8px", fontSize: "13px" }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "11px", marginBottom: "4px", fontWeight: "600", color: "#64748b" }}>End Date</label>
+              <input 
+                type="text"
+                placeholder="20/01/2026"
+                value={filters.endDate} 
+                onChange={(e) => handleFilterChange("endDate", e.target.value)}
+                style={{ width: "100%", padding: "8px", fontSize: "13px" }}
+              />
+            </div>
+
+            <div style={{ display: "flex", alignItems: "flex-end" }}>
+              <button 
+                onClick={handleApplyFilters} 
+                style={{ 
+                  width: "100%",
+                  padding: "8px",
+                  fontSize: "13px",
+                  fontWeight: "600"
+                }}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Filters */}
+          <div style={{ 
+            display: "flex", 
+            gap: "8px", 
+            alignItems: "center",
+            padding: "12px",
+            background: "white",
+            borderRadius: "8px",
+            border: "1px solid #e5e7eb"
+          }}>
+            <span style={{ fontSize: "11px", fontWeight: "bold", color: "#64748b" }}>Quick:</span>
+            <button 
+              onClick={() => handleQuickFilter("lastweek")}
+              style={{ padding: "6px 12px", fontSize: "12px" }}
             >
-              <option value="">All Zones</option>
-              {zones.map(z => (
-                <option key={z.id} value={z.id}>{z.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: "12px", marginBottom: "5px" }}>District</label>
-            <select 
-              value={filters.districtId} 
-              onChange={(e) => handleFilterChange("districtId", e.target.value)}
-              style={{ width: "100%" }}
+              Last Week
+            </button>
+            <button 
+              onClick={() => handleQuickFilter("last2weeks")}
+              style={{ padding: "6px 12px", fontSize: "12px" }}
             >
-              <option value="">All Districts</option>
-              {filteredDistricts.map(d => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: "12px", marginBottom: "5px" }}>Constituency</label>
-            <select 
-              value={filters.constituencyNumber} 
-              onChange={(e) => handleFilterChange("constituencyNumber", e.target.value)}
-              style={{ width: "100%" }}
+              Last 2 Weeks
+            </button>
+            <button 
+              onClick={() => handleQuickFilter("lastmonth")}
+              style={{ padding: "6px 12px", fontSize: "12px" }}
             >
-              <option value="">All Constituencies</option>
-              {filteredConstituencies.map(c => (
-                <option key={c.number} value={c.number}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: "12px", marginBottom: "5px" }}>Booth Number</label>
-            <input 
-              type="number"
-              placeholder="Booth #"
-              value={filters.boothNumber} 
-              onChange={(e) => handleFilterChange("boothNumber", e.target.value)}
-              style={{ width: "100%" }}
-            />
-          </div>
-        </div>
-
-        {/* Row 2: Town, Center, Karyakarta */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "10px" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "12px", marginBottom: "5px" }}>Town</label>
-            <select 
-              value={filters.townId} 
-              onChange={(e) => handleFilterChange("townId", e.target.value)}
-              style={{ width: "100%" }}
+              Last Month
+            </button>
+            <button 
+              onClick={handleClearFilters}
+              style={{ padding: "6px 12px", fontSize: "12px", background: "#6c757d" }}
             >
-              <option value="">All Towns</option>
-              {towns.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: "12px", marginBottom: "5px" }}>Center</label>
-            <select 
-              value={filters.centerId} 
-              onChange={(e) => handleFilterChange("centerId", e.target.value)}
-              style={{ width: "100%" }}
-            >
-              <option value="">All Centers</option>
-              {centers.map(c => (
-                <option key={c.id} value={c.id}>{c.centerAddress || c.address || c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: "12px", marginBottom: "5px" }}>Karyakarta Name</label>
-            <input 
-              type="text"
-              placeholder="Search karyakarta..."
-              value={filters.karyakartaName} 
-              onChange={(e) => handleFilterChange("karyakartaName", e.target.value)}
-              style={{ width: "100%" }}
-            />
-          </div>
-        </div>
-
-        {/* Row 3: Status and Dates */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginBottom: "15px" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "12px", marginBottom: "5px" }}>Status</label>
-            <select 
-              value={filters.status} 
-              onChange={(e) => handleFilterChange("status", e.target.value)}
-              style={{ width: "100%" }}
-            >
-              <option value="">All Status</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Pending">Pending</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: "12px", marginBottom: "5px" }}>Start Date (dd/MM/yyyy)</label>
-            <input 
-              type="text"
-              placeholder="15/01/2026"
-              value={filters.startDate} 
-              onChange={(e) => handleFilterChange("startDate", e.target.value)}
-              style={{ width: "100%" }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: "12px", marginBottom: "5px" }}>End Date (dd/MM/yyyy)</label>
-            <input 
-              type="text"
-              placeholder="20/01/2026"
-              value={filters.endDate} 
-              onChange={(e) => handleFilterChange("endDate", e.target.value)}
-              style={{ width: "100%" }}
-            />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "flex-end" }}>
-            <button onClick={handleApplyFilters} style={{ flex: 1 }}>
-              Apply Filters
+              Clear All
             </button>
           </div>
         </div>
-
-        {/* Quick Filters */}
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <span style={{ fontSize: "12px", fontWeight: "bold" }}>Quick Filters:</span>
-          <button 
-            onClick={() => handleQuickFilter("lastweek")}
-            style={{ padding: "5px 15px", fontSize: "12px" }}
-          >
-            Last Week
-          </button>
-          <button 
-            onClick={() => handleQuickFilter("last2weeks")}
-            style={{ padding: "5px 15px", fontSize: "12px" }}
-          >
-            Last 2 Weeks
-          </button>
-          <button 
-            onClick={() => handleQuickFilter("lastmonth")}
-            style={{ padding: "5px 15px", fontSize: "12px" }}
-          >
-            Last Month
-          </button>
-          <button 
-            onClick={handleClearFilters}
-            style={{ padding: "5px 15px", fontSize: "12px", background: "#6c757d" }}
-          >
-            Clear All
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* SUMMARY */}
       <div style={{ 
-        padding: "10px", 
-        background: "#e9ecef", 
-        borderRadius: "5px",
-        marginBottom: "15px",
+        padding: "12px 16px", 
+        background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)", 
+        borderRadius: "8px",
+        marginBottom: "16px",
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center"
+        alignItems: "center",
+        border: "1px solid #e5e7eb"
       }}>
         <div>
-          <strong>📈 Total Bookings: {totalBookings.toLocaleString()}</strong>
-          <span style={{ marginLeft: "20px", fontSize: "14px" }}>
+          <strong style={{ fontSize: "15px", color: "#1e40af" }}>📈 Total Bookings: {totalBookings.toLocaleString()}</strong>
+          <span style={{ marginLeft: "20px", fontSize: "13px", color: "#64748b" }}>
             Showing {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, totalBookings)} of {totalBookings.toLocaleString()}
           </span>
         </div>
         {dateRange.startDate && dateRange.endDate && (
-          <div>
+          <div style={{ fontSize: "13px" }}>
             <strong>Date Range:</strong> {dateRange.startDate} - {dateRange.endDate}
           </div>
         )}

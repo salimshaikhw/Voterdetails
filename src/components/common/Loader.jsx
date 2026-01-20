@@ -6,30 +6,31 @@ export default function Loader({ message = "Loading..." }) {
       alignItems: "center", 
       justifyContent: "center",
       padding: "60px 20px",
-      background: "#f9f9f9",
-      borderRadius: "8px",
-      minHeight: "300px"
+      background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+      borderRadius: "16px",
+      minHeight: "300px",
+      border: "2px solid #e2e8f0"
     }}>
       <div style={{
-        width: "50px",
-        height: "50px",
-        border: "5px solid #f3f3f3",
-        borderTop: "5px solid #007bff",
+        width: "60px",
+        height: "60px",
+        border: "4px solid #e0e7ff",
+        borderTop: "4px solid #2563eb",
         borderRadius: "50%",
-        animation: "spin 1s linear infinite"
+        animation: "spin 0.8s linear infinite"
       }}></div>
       <p style={{ 
-        marginTop: "20px", 
+        marginTop: "24px", 
         fontSize: "16px", 
-        color: "#666",
-        fontWeight: "500"
+        color: "#6b7280",
+        fontWeight: "600",
+        letterSpacing: "0.5px"
       }}>
         {message}
       </p>
       <style>{`
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

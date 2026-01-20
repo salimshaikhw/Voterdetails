@@ -95,7 +95,27 @@ export default function AppointmentPage() {
   };
 
   return (
-    <div className="page">
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      {/* Header */}
+      <header style={{
+        background: "linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)",
+        color: "white",
+        padding: "20px 32px",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+        position: "sticky",
+        top: 0,
+        zIndex: 1000
+      }}>
+        <h1 style={{
+          margin: 0,
+          fontSize: "28px",
+          fontWeight: 700,
+          letterSpacing: "0.5px"
+        }}>
+          Health Card Booking Panel
+        </h1>
+      </header>
+
       {isLoading ? (
         <div style={{
           display: "flex",
@@ -129,7 +149,7 @@ export default function AppointmentPage() {
           `}</style>
         </div>
       ) : (
-        <>
+        <div className="page" style={{ flex: 1 }}>
           <TabsContainer activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="content">
@@ -210,8 +230,26 @@ export default function AppointmentPage() {
 
         {activeTab === "report" && <ReportTab />}
       </div>
-        </>
+        </div>
       )}
+
+      {/* Footer */}
+      <footer style={{
+        background: "linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)",
+        color: "white",
+        padding: "16px 32px",
+        textAlign: "center",
+        boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.1)",
+        marginTop: "auto"
+      }}>
+        <p style={{
+          margin: 0,
+          fontSize: "14px",
+          fontWeight: 500
+        }}>
+          @mk
+        </p>
+      </footer>
     </div>
   );
 }
