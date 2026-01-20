@@ -1,46 +1,53 @@
 import { useEffect, useState } from "react";
 import {
-  getCenters,
+  getCentersWithTownMapping,
   createCenter,
   updateCenter,
   deleteCenter,
-  getBooths,
+  getTowns,
+  getBlocks,
   getConstituencies,
 } from "../../services/api";
+import Loader from "../common/Loader";
 
 export default function CenterTab() {
+  const [loading, setLoading] = useState(true);
   const [centers, setCenters] = useState([]);
-  const [booths, setBooths] = useState([]);
+  const [towns, setTowns] = useState([]);
+  const [blocks, setBlocks] = useState([]);
   const [constituencies, setConstituencies] = useState([]);
 
   const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
-    boothId: "",
+    townid: "",
+    centerUid: "",
     name: "",
     address: "",
-    contactNumber: "",
-    contactPerson: "",
-    isActive: true,
-    slotsPerDay: "",
   });
 
   /* ======================
      LOAD DATA
   ====================== */
   const loadData = async () => {
+    setLoading(true);
     try {
-      const [centerRes, boothRes, constituencyRes] = await Promise.all([
-        getCenters(),
-        getBooths(),
-        getConstituencies(),
-      ]);
+      const [centerRes, townRes, blockRes, constituencyRes] =
+        await Promise.all([
+          getCentersWithTownMapping(),
+          getTowns(),
+          getBlocks(),
+          getConstituencies(),
+        ]);
 
-      setCenters(centerRes.data);
-      setBooths(boothRes.data);
-      setConstituencies(constituencyRes.data);
+      setCenters(centerRes.data || []);
+      setTowns(townRes.data || []);
+      setBlocks(blockRes.data || []);
+      setConstituencies(constituencyRes.data || []);
     } catch (err) {
       console.error("Failed to load center data", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,24 +59,17 @@ export default function CenterTab() {
      FORM HANDLERS
   ====================== */
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const resetForm = () => {
     setEditingId(null);
     setForm({
-      boothId: "",
+      townid: "",
+      centerUid: "",
       name: "",
       address: "",
-      contactNumber: "",
-      contactPerson: "",
-      isActive: true,
-      slotsPerDay: "",
     });
   };
 
@@ -77,22 +77,16 @@ export default function CenterTab() {
      ADD / UPDATE
   ====================== */
   const handleSave = async () => {
-    if (!form.name || !form.boothId) return;
+    if (!form.townid || !form.centerUid || !form.name) return;
 
     try {
       if (editingId) {
         await updateCenter(editingId, {
           id: editingId,
           ...form,
-          boothId: Number(form.boothId),
-          slotsPerDay: Number(form.slotsPerDay),
         });
       } else {
-        await createCenter({
-          ...form,
-          boothId: Number(form.boothId),
-          slotsPerDay: Number(form.slotsPerDay),
-        });
+        await createCenter(form);
       }
 
       resetForm();
@@ -106,6 +100,8 @@ export default function CenterTab() {
      DELETE
   ====================== */
   const handleDelete = async (id) => {
+    if (!window.confirm("Delete this center?")) return;
+
     try {
       await deleteCenter(id);
       loadData();
@@ -115,16 +111,22 @@ export default function CenterTab() {
   };
 
   /* ======================
-     HELPERS
+     HELPERS (REAL RELATIONS)
   ====================== */
-  const getBoothName = (id) =>
-    booths.find((b) => b.id === id)?.name || "-";
+  const getTown = (townId) => {
+    // Try both lowercase and camelCase
+    return towns.find((t) => t.id === townId || t.Id === townId);
+  };
 
-  const getConstituencyName = (boothId) => {
-    const booth = booths.find((b) => b.id === boothId);
-    return (
-      constituencies.find((c) => c.id === booth?.constituencyId)?.name ||
-      "-"
+  const getBlock = (townId) => {
+    const town = getTown(townId);
+    return blocks.find((b) => b.number === town?.blocknumber);
+  };
+
+  const getConstituency = (townId) => {
+    const block = getBlock(townId);
+    return constituencies.find(
+      (c) => c.number === block?.constituencynumber
     );
   };
 
@@ -132,201 +134,144 @@ export default function CenterTab() {
      UI
   ====================== */
   return (
-  <div className="card">
-    <h2>Center</h2>
-
-    {/* ===== Add / Update Center Form ===== */}
-    <div
-      style={{
-        marginBottom: "20px",
-        padding: "15px",
-        border: "1px solid #ddd",
-        borderRadius: "5px",
-      }}
-    >
-      {/* Row 1: Select Booth + Center Name */}
-      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        <select
-          name="boothId"
-          value={form.boothId}
-          onChange={handleChange}
-          style={{ flex: 1, padding: "8px" }}
-        >
-          <option value="">Select Booth</option>
-          {booths.map((b) => {
-            const number = b.partNumber ?? b.partNo ?? b.boothNumber ?? b.number ?? b.id ?? "";
-            const name = b.name ?? b.booth ?? "";
-            const label = number ? `${number} - ${name}` : name;
-            return (
-              <option key={b.id} value={b.id}>
-                {label}
+    <div className="card">
+      <h2>Center</h2>
+      
+      {loading ? (
+        <Loader message="Loading centers..." />
+      ) : (
+        <>
+          {/* ===== Add / Update Center ===== */}
+      <div
+        style={{
+          marginBottom: "20px",
+          padding: "15px",
+          border: "1px solid #ddd",
+          borderRadius: "5px",
+        }}
+      >
+        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <select
+            name="townid"
+            value={form.townid}
+            onChange={handleChange}
+            style={{ flex: 2 }}
+          >
+            <option value="">Select Town</option>
+            {towns.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
               </option>
-            );
-          })}
-        </select>
+            ))}
+          </select>
 
-        <input
-          name="name"
-          placeholder="Center Name"
-          value={form.name}
-          onChange={handleChange}
-          style={{ flex: 2, padding: "8px" }}
-        />
-      </div>
+          <input
+            name="centerUid"
+            placeholder="Center UID"
+            value={form.centerUid}
+            onChange={handleChange}
+            style={{ flex: 1 }}
+          />
 
-      {/* Row 2: Address */}
-      <div style={{ marginBottom: "10px" }}>
+          <input
+            name="name"
+            placeholder="Center Name"
+            value={form.name}
+            onChange={handleChange}
+            style={{ flex: 2 }}
+          />
+        </div>
+
         <input
           name="address"
           placeholder="Address"
           value={form.address}
           onChange={handleChange}
-          style={{ width: "100%", padding: "8px" }}
-        />
-      </div>
-
-      {/* Row 3: Contact Number + Contact Person */}
-      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        <input
-          name="contactNumber"
-          placeholder="Contact Number"
-          value={form.contactNumber}
-          onChange={handleChange}
-          style={{ flex: 1, padding: "8px" }}
+          style={{ width: "100%", marginBottom: "10px" }}
         />
 
-        <input
-          name="contactPerson"
-          placeholder="Contact Person"
-          value={form.contactPerson}
-          onChange={handleChange}
-          style={{ flex: 1, padding: "8px" }}
-        />
-      </div>
-
-      {/* Row 4: Slots / Day + Active + Buttons */}
-      <div
-        style={{
-          display: "flex",
-          gap: "15px",
-          alignItems: "center",
-        }}
-      >
-        <input
-          type="number"
-          name="slotsPerDay"
-          placeholder="Slots / Day"
-          value={form.slotsPerDay}
-          onChange={handleChange}
-          style={{ width: "140px", padding: "8px" }}
-        />
-
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <input
-            type="checkbox"
-            name="isActive"
-            checked={form.isActive}
-            onChange={handleChange}
-          />
-          Active
-        </label>
-
-        <button
-          onClick={handleSave}
-          style={{
-            padding: "8px 20px",
-            backgroundColor: "#007bff",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
+        <button onClick={handleSave}>
           {editingId ? "Update" : "Add"}
         </button>
 
         {editingId && (
           <button
             onClick={resetForm}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "#6c757d",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
+            style={{ marginLeft: "10px", background: "#6c757d" }}
           >
             Cancel
           </button>
         )}
       </div>
-    </div>
 
-    {/* ===== Center Table ===== */}
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Center</th>
-          <th>Booth</th>
-          <th>Constituency</th>
-          <th>Active</th>
-          <th>Slots / Day</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {centers.map((c) => (
-          <tr key={c.id}>
-            <td>{c.id}</td>
-            <td>{c.name}</td>
-            <td>{getBoothName(c.boothId)}</td>
-            <td>{getConstituencyName(c.boothId)}</td>
-            <td>{c.isActive ? "Yes" : "No"}</td>
-            <td>{c.slotsPerDay}</td>
-            <td>
-              <button
-                onClick={() => {
-                  setEditingId(c.id);
-                  setForm({
-                    boothId: c.boothId,
-                    name: c.name,
-                    address: c.address,
-                    contactNumber: c.contactNumber,
-                    contactPerson: c.contactPerson,
-                    isActive: c.isActive,
-                    slotsPerDay: c.slotsPerDay,
-                  });
-                }}
-                style={{ marginRight: "8px" }}
-              >
-                Edit
-              </button>
-
-              <button onClick={() => handleDelete(c.id)}>
-                Delete
-              </button>
-            </td>
-          </tr>
-        ))}
-
-        {centers.length === 0 && (
+      {/* ===== Center Table ===== */}
+      <table>
+        <thead>
           <tr>
-            <td colSpan="7">No data</td>
+            <th>Center</th>
+            <th>Town</th>
+            <th>Address</th>
+            <th>Actions</th>
           </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-);
+        </thead>
 
+        <tbody>
+          {centers.map((c) => {
+            const townIdValue = c.townid || c.townId || c.TownId;
+            const town = getTown(townIdValue);
+
+            return (
+              <tr key={c.id}>
+                <td>
+                  {c.centerUid} - {c.name}
+                </td>
+
+                <td>
+                  {c.townname || town?.name || "-"}
+                </td>
+
+                <td>{c.centerAddress || c.address || "-"}</td>
+
+                <td>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <button
+                      onClick={() => {
+                        setEditingId(c.id);
+                        setForm({
+                          townid: c.townid || c.townId || c.TownId || "",
+                          centerUid: c.centerUid,
+                          name: c.name,
+                          address: c.centerAddress || c.address,
+                        });
+                      }}
+                    >
+                      Edit
+                    </button>
+
+                    <button onClick={() => handleDelete(c.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+
+          {centers.length === 0 && (
+            <tr>
+              <td colSpan="4">No data</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+        </>
+      )}
+    </div>
+  );
 }

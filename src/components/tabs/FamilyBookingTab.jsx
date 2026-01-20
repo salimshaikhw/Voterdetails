@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getFamilyBookings } from "../../services/api";
+import { getFamilyBookingsWithMembersAndBookings } from "../../services/api";
 
 export default function FamilyBookingTab() {
   const [expandedAccordion, setExpandedAccordion] = useState(null);
@@ -9,11 +9,58 @@ export default function FamilyBookingTab() {
 
   useEffect(() => {
     let mounted = true;
+
     const load = async () => {
       setLoading(true);
       try {
-        const res = await getFamilyBookings();
-        if (mounted) setBookings(Array.isArray(res.data) ? res.data : []);
+        const res = await getFamilyBookingsWithMembersAndBookings();
+
+        const raw = Array.isArray(res.data) ? res.data : [];
+
+        const cleaned = raw.map((f, index) => {
+          const members = Array.isArray(f.familyMembers)
+            ? f.familyMembers.map(m => ({
+                familyMemberId: m.id || m.familymemberuid,
+                name: m.name || "-",
+                vCardId: m.voterid || "-",
+                age: m.age ?? "-",
+                gender: m.gender || "-",
+                contactNumber: m.contactnumber || "-",
+                serialNumber: m.serialnumber ?? "-",
+                isFamilyHead: m.isfamilyhead || false,
+                isMinor: m.isminor || false,
+                bookingDetails: m.bookingDetails || {}
+              }))
+            : [];
+
+          const booking = members[0]?.bookingDetails || {};
+
+          return {
+            familyBookingId: booking.bookingId || f.id || `tmp-${index}`,
+            familyId: f.familyuid || "-",
+
+            constituencyName: f.constituencyName || "Unknown",
+            constituencyNumber: f.constituencyNumber ?? "-",
+            partNumber: f.partNumber ?? "-",
+
+            centerName: f.centerName || "Unknown",
+            centerAddress: f.centerAddress || "-",
+
+            town: f.townName || "-",
+
+            slotTypeName: booking.slotTypeName || "-",
+            appointmentDate: booking.appointmentdate || null,
+            bookingTime: booking.bookingdate || null,
+
+            karyakartaName: f.karyakartaName || "-",
+            karyakartaContactNumber: f.karyakartaContactNumber || "-",
+
+            members,
+            familyMembers: members,
+          };
+        });
+
+        if (mounted) setBookings(cleaned);
       } catch (err) {
         console.error("Failed to load family bookings", err);
         if (mounted) setError(err.message || "Failed to load");
@@ -23,8 +70,11 @@ export default function FamilyBookingTab() {
     };
 
     load();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
+
   const [filterConstituency, setFilterConstituency] = useState("");
   const [filterPartNumber, setFilterPartNumber] = useState("");
   const [filterCenter, setFilterCenter] = useState("");
@@ -34,30 +84,58 @@ export default function FamilyBookingTab() {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return "-";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    if (isNaN(date.getTime())) return "-";
+    return date.toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getFamilyHead = (members) => {
-    return members.find(m => m.isFamilyHead) || members[0];
+    if (!Array.isArray(members) || members.length === 0) {
+      return {
+        name: "Unknown",
+        vCardId: "-",
+        contactNumber: "-",
+        age: "-",
+        gender: "-",
+        serialNumber: "-",
+        isFamilyHead: false,
+      };
+    }
+
+    return members.find((m) => m.isFamilyHead) || members[0];
   };
 
-  // Get unique values for filters
-  const constituencies = [...new Set(bookings.map(b => b.constituencyName))];
-  const partNumbers = [...new Set(bookings.map(b => b.partNumber))].sort((a, b) => a - b);
-  const centers = [...new Set(bookings.map(b => b.centerName))];
+  const constituencies = [
+    ...new Set(bookings.map((b) => b.constituencyName).filter(Boolean)),
+  ];
 
-  // Filter bookings
-  const filteredBookings = bookings.filter(booking => {
-    const matchConstituency = !filterConstituency || booking.constituencyName === filterConstituency;
-    const matchPartNumber = !filterPartNumber || booking.partNumber === parseInt(filterPartNumber);
-    const matchCenter = !filterCenter || booking.centerName === filterCenter;
+  const partNumbers = [
+    ...new Set(bookings.map((b) => b.partNumber).filter((p) => p !== "-")),
+  ].sort((a, b) => a - b);
+
+  const centers = [
+    ...new Set(bookings.map((b) => b.centerName).filter(Boolean)),
+  ];
+
+  const filteredBookings = bookings.filter((booking) => {
+    const matchConstituency =
+      !filterConstituency ||
+      booking.constituencyName === filterConstituency;
+
+    const matchPartNumber =
+      !filterPartNumber ||
+      Number(booking.partNumber) === Number(filterPartNumber);
+
+    const matchCenter =
+      !filterCenter || booking.centerName === filterCenter;
+
     return matchConstituency && matchPartNumber && matchCenter;
   });
 
@@ -172,7 +250,7 @@ export default function FamilyBookingTab() {
       
       <div style={{ marginTop: "20px" }}>
         {filteredBookings.map((booking) => {
-          const familyHead = getFamilyHead(booking.members);
+          const familyHead = getFamilyHead(booking.familyMembers);
           const isExpanded = expandedAccordion === booking.familyBookingId;
 
           return (
@@ -388,7 +466,7 @@ export default function FamilyBookingTab() {
                         <strong>Slot Type:</strong> {booking.slotTypeName}
                       </div>
                       <div>
-                        <strong>Appointment Date:</strong> {new Date(booking.appointmentDate).toLocaleDateString('en-IN')}
+                        <strong>Appointment Date:</strong> {booking.appointmentDate || "-"}
                       </div>
                       <div style={{ gridColumn: "1 / -1" }}>
                         <strong>Booking Time:</strong> {formatDate(booking.bookingTime)}

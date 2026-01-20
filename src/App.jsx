@@ -1,11 +1,7 @@
 import AppointmentPage from "./pages/AppointmentPage";
 
 function App() {
-  return (
-    <div>
-      <AppointmentPage />
-    </div>
-  );
+  return <AppointmentPage />;
 }
 
 export default App;

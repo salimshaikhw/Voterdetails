@@ -5,6 +5,7 @@ import {
   updateHoliday,
   deleteHoliday,
 } from "../../services/api";
+import Loader from "../common/Loader";
 
 export default function HolidayTab({
   booths = [],
@@ -13,6 +14,7 @@ export default function HolidayTab({
   rows,
   setRows,
 }) {
+  const [loading, setLoading] = useState(true);
   const [boothId, setBoothId] = useState("");
   const [centerId, setCenterId] = useState("");
   const [slotId, setSlotId] = useState("");
@@ -29,18 +31,27 @@ export default function HolidayTab({
   }, []);
 
   const loadHolidays = async () => {
+    setLoading(true);
     try {
       const res = await getHolidays();
       // Normalize incoming records to support different backends
       const normalize = (h) => ({
         ...h,
-        globalHoliday:
-          h.globalHoliday ?? h.isGlobalHoliday ?? h.isGlobal ?? h.global ?? false,
+        centerId: h.cscid || h.centerId,
+        townId: h.townid || h.townId,
+        constituencyNumber: h.constituencynumber || h.constituencyNumber,
+        slotId: h.slotid || h.slotId,
+        holidayDate: h.holidaydate || h.holidayDate,
+        description: h.description || "",
+        isGlobal: h.isglobal ?? h.isGlobal ?? false,
+        holidayType: h.holidayType || h.holidaytype || "string",
       });
 
       setRows(Array.isArray(res.data) ? res.data.map(normalize) : []);
     } catch (err) {
       console.error("Failed to load holidays", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -94,16 +105,14 @@ export default function HolidayTab({
     const payload = {
       // include id for update endpoints that expect it in body
       ...(editingId ? { id: editingId } : {}),
-      boothId: boothId ? Number(boothId) : null,
-      centerId: centerId ? Number(centerId) : null,
-      slotId: fullDay ? null : slotId ? Number(slotId) : null,
-      holidayDate, // yyyy-mm-dd
-      description: description || null,
-      // send multiple variants so backend matches whatever it expects
-      globalHoliday: !!globalHoliday,
-      isGlobalHoliday: !!globalHoliday,
-      isGlobal: !!globalHoliday,
-      global: !!globalHoliday,
+      cscid: centerId ? centerId : null,
+      townid: boothId ? boothId : null,
+      constituencynumber: 0,
+      slotid: fullDay ? 0 : slotId ? Number(slotId) : 0,
+      holidaydate: holidayDate, // yyyy-mm-dd format: "2026-01-18"
+      description: description || "string",
+      isglobal: !!globalHoliday,
+      holidayType: "string"
     };
 
     console.log("Saving holiday payload", payload);
@@ -128,13 +137,13 @@ export default function HolidayTab({
 
   const handleEdit = (h) => {
     setEditingId(h.id);
-    setBoothId(h.boothId ?? "");
+    setBoothId(h.townId ?? "");
     setCenterId(h.centerId ?? "");
     setSlotId(h.slotId ?? "");
     setHolidayDate(h.holidayDate);
     setDescription(h.description ?? "");
-    setFullDay(h.slotId === null);
-    setGlobalHoliday(!!h.globalHoliday);
+    setFullDay(h.slotId === 0 || h.slotId === null);
+    setGlobalHoliday(!!h.isGlobal);
   };
 
   /* ---------------- DELETE ---------------- */
@@ -156,16 +165,20 @@ export default function HolidayTab({
   return (
   <div className="card">
     <h2>Holiday</h2>
-
-    {/* ===== Holiday Form ===== */}
-    <div
-      style={{
-        marginBottom: "20px",
-        padding: "15px",
-        border: "1px solid #ddd",
-        borderRadius: "5px",
-      }}
-    >
+    
+    {loading ? (
+      <Loader message="Loading holidays..." />
+    ) : (
+      <>
+        {/* ===== Holiday Form ===== */}
+        <div
+          style={{
+            marginBottom: "20px",
+            padding: "15px",
+            border: "1px solid #ddd",
+            borderRadius: "5px",
+          }}
+        >
       {/* Row 1: Booth + Center */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
         <select
@@ -326,7 +339,6 @@ export default function HolidayTab({
     <table>
       <thead>
         <tr>
-          <th>ID</th>
           <th>Booth</th>
           <th>Center</th>
           <th>Slot</th>
@@ -345,17 +357,16 @@ export default function HolidayTab({
 
         {rows.map((h) => (
           <tr key={h.id}>
-            <td>{h.id}</td>
-            <td>{getBoothLabel(booths.find((b) => b.id === h.boothId))}</td>
+            <td>{getBoothLabel(booths.find((b) => b.id === h.townId))}</td>
             <td>{getCenterLabel(centers.find((c) => c.id === h.centerId))}</td>
             <td>
-              {h.slotId
+              {h.slotId && h.slotId !== 0
                 ? `${slotTimes.find((s) => s.id === h.slotId)?.startTime} - 
                    ${slotTimes.find((s) => s.id === h.slotId)?.endTime}`
                 : "Full Day"}
             </td>
             <td>{h.holidayDate}</td>
-            <td>{h.globalHoliday ? "Yes" : "No"}</td>
+            <td>{h.isGlobal ? "Yes" : "No"}</td>
             <td>
               <button
                 onClick={() => handleEdit(h)}
@@ -369,6 +380,8 @@ export default function HolidayTab({
         ))}
       </tbody>
     </table>
+      </>
+    )}
   </div>
 );
 

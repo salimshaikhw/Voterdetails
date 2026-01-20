@@ -1,72 +1,59 @@
 import { useEffect, useState } from "react";
 import {
-  getBooths,
-  createBooth,
-  updateBooth,
-  deleteBooth,
-  getConstituencies,
   getBlocks,
+  createBlock,
+  updateBlock,
+  deleteBlock,
 } from "../../services/api";
 import Loader from "../common/Loader";
 
-export default function BoothTab() {
-  const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState([]);
-  const [constituencies, setConstituencies] = useState([]);
-  const [blocks, setBlocks] = useState([]);
+const blueButtonStyle = {
+  padding: "6px 12px",
+  color: "white",
+  border: "none",
+  borderRadius: "4px",
+  cursor: "pointer",
+  fontSize: "13px",
+};
 
+
+export default function BlockTab({ constituencies, rows, setRows }) {
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    constituencynumber: "",
-    blocknumber: "",
     name: "",
     number: "",
+    constituencynumber: "",
   });
 
   const [editingId, setEditingId] = useState(null);
 
   /* ======================
-     LOAD DATA
+     LOAD FROM BACKEND
   ====================== */
-  const loadData = async () => {
+  const loadBlocks = async () => {
     setLoading(true);
     try {
-      const [boothRes, constituencyRes, blockRes] = await Promise.all([
-        getBooths(),
-        getConstituencies(),
-        getBlocks(),
-      ]);
-
-      setRows(boothRes.data || []);
-      setConstituencies(constituencyRes.data || []);
-      setBlocks(blockRes.data || []);
+      const res = await getBlocks();
+      setRows(res.data || []);
     } catch (err) {
-      console.error("Failed to load booth data", err);
+      console.error("Failed to load blocks", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadBlocks();
   }, []);
-
-  const filteredBlocks = formData.constituencynumber
-    ? blocks.filter(
-        (b) =>
-          Number(b.constituencynumber) ===
-          Number(formData.constituencynumber)
-      )
-    : blocks;
 
   /* ======================
      ADD / UPDATE
   ====================== */
-  const handleSave = async () => {
+  const handleSubmit = async () => {
     if (
-      !formData.constituencynumber ||
-      !formData.blocknumber ||
       !formData.name.trim() ||
-      !formData.number
+      !formData.number ||
+      !formData.constituencynumber
     )
       return;
 
@@ -75,17 +62,21 @@ export default function BoothTab() {
         name: formData.name,
         number: Number(formData.number),
         constituencynumber: Number(formData.constituencynumber),
-        blocknumber: Number(formData.blocknumber),
       };
 
       if (editingId) {
-        await updateBooth(editingId, payload);
+        await updateBlock(editingId, payload);
       } else {
-        await createBooth(payload);
+        await createBlock(payload);
       }
 
-      resetForm();
-      loadData();
+      setFormData({
+        name: "",
+        number: "",
+        constituencynumber: "",
+      });
+      setEditingId(null);
+      loadBlocks();
     } catch (err) {
       console.error("Save failed", err);
     }
@@ -95,24 +86,14 @@ export default function BoothTab() {
      DELETE
   ====================== */
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this booth?")) return;
+    if (!window.confirm("Delete this block?")) return;
 
     try {
-      await deleteBooth(id);
-      loadData();
+      await deleteBlock(id);
+      loadBlocks();
     } catch {
       alert("Delete failed");
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      constituencynumber: "",
-      blocknumber: "",
-      name: "",
-      number: "",
-    });
-    setEditingId(null);
   };
 
   const getConstituencyName = (number) => {
@@ -122,19 +103,12 @@ export default function BoothTab() {
     return c ? c.displayName || c.name : "-";
   };
 
-  const getBlockName = (number) => {
-    const b = blocks.find(
-      (b) => Number(b.number) === Number(number)
-    );
-    return b ? b.name : "-";
-  };
-
   return (
     <div className="card">
-      <h2>Booth</h2>
+      <h2>Block</h2>
       
       {loading ? (
-        <Loader message="Loading booths..." />
+        <Loader message="Loading blocks..." />
       ) : (
         <>
           {/* ===== Manual Entry ===== */}
@@ -147,7 +121,7 @@ export default function BoothTab() {
             }}
           >
         <h3 style={{ marginBottom: "15px", fontSize: "16px" }}>
-          Add Booth Manually
+          Add Block Manually
         </h3>
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
@@ -157,7 +131,6 @@ export default function BoothTab() {
               setFormData({
                 ...formData,
                 constituencynumber: e.target.value,
-                blocknumber: "",
               })
             }
             style={{ flex: 2 }}
@@ -170,25 +143,9 @@ export default function BoothTab() {
             ))}
           </select>
 
-          <select
-            value={formData.blocknumber}
-            onChange={(e) =>
-              setFormData({ ...formData, blocknumber: e.target.value })
-            }
-            style={{ flex: 2 }}
-            disabled={!formData.constituencynumber}
-          >
-            <option value="">Select Block</option>
-            {filteredBlocks.map((b) => (
-              <option key={b.id} value={b.number}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-
           <input
             type="text"
-            placeholder="Booth Name"
+            placeholder="Block Name"
             value={formData.name}
             onChange={(e) =>
               setFormData({ ...formData, name: e.target.value })
@@ -198,7 +155,7 @@ export default function BoothTab() {
 
           <input
             type="number"
-            placeholder="Booth Number"
+            placeholder="Block Number"
             value={formData.number}
             onChange={(e) =>
               setFormData({ ...formData, number: e.target.value })
@@ -206,12 +163,21 @@ export default function BoothTab() {
             style={{ flex: 1 }}
           />
 
-          <button onClick={handleSave}>
+          <button onClick={handleSubmit} style={blueButtonStyle}>
             {editingId ? "Update" : "Add"}
           </button>
 
           {editingId && (
-            <button onClick={resetForm}>Cancel</button>
+            <button onClick={() => {
+              setFormData({
+                name: "",
+                number: "",
+                constituencynumber: "",
+              });
+              setEditingId(null);
+            }} style={blueButtonStyle}>
+              Cancel
+            </button>
           )}
         </div>
       </div>
@@ -222,21 +188,19 @@ export default function BoothTab() {
           <tr>
             <th>Constituency</th>
             <th>Block</th>
-            <th>Booth</th>
-            <th>Booth Number</th>
+            <th>Block Number</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan="5">No data</td>
+              <td colSpan="4">No data</td>
             </tr>
           ) : (
             rows.map((r) => (
               <tr key={r.id}>
                 <td>{getConstituencyName(r.constituencynumber)}</td>
-                <td>{getBlockName(r.blocknumber)}</td>
                 <td>{r.name}</td>
                 <td>{r.number}</td>
                 <td>
@@ -254,14 +218,17 @@ export default function BoothTab() {
                           name: r.name,
                           number: r.number,
                           constituencynumber: r.constituencynumber,
-                          blocknumber: r.blocknumber,
                         });
                       }}
+                      style={blueButtonStyle}
                     >
                       Edit
                     </button>
 
-                    <button onClick={() => handleDelete(r.id)}>
+                    <button
+                      onClick={() => handleDelete(r.id)}
+                      style={blueButtonStyle}
+                    >
                       Delete
                     </button>
                   </div>

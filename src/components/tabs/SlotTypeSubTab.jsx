@@ -5,15 +5,22 @@ import {
   updateSlotType,
   deleteSlotType,
 } from "../../services/api";
+import Loader from "../common/Loader";
 
 export default function SlotTypeSubTab() {
+  const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [name, setName] = useState("");
   const [editingId, setEditingId] = useState(null);
 
   const loadData = async () => {
-    const res = await getSlotTypes();
-    setRows(res.data);
+    setLoading(true);
+    try {
+      const res = await getSlotTypes();
+      setRows(res.data);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -55,8 +62,12 @@ export default function SlotTypeSubTab() {
   return (
     <>
       <h3>Slot Type</h3>
-
-      <div className="form-row">
+      
+      {loading ? (
+        <Loader message="Loading slot types..." />
+      ) : (
+        <>
+          <div className="form-row">
         <input
           placeholder="Slot Type Name"
           value={name}
@@ -115,6 +126,8 @@ export default function SlotTypeSubTab() {
           )}
         </tbody>
       </table>
+        </>
+      )}
     </>
   );
 }

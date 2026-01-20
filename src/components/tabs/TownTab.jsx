@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import {
-  getBooths,
-  createBooth,
-  updateBooth,
-  deleteBooth,
+  getTowns,
+  createTown,
+  updateTown,
+  deleteTown,
   getConstituencies,
   getBlocks,
 } from "../../services/api";
 import Loader from "../common/Loader";
 
-export default function BoothTab() {
+export default function TownTab() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [constituencies, setConstituencies] = useState([]);
@@ -19,7 +19,6 @@ export default function BoothTab() {
     constituencynumber: "",
     blocknumber: "",
     name: "",
-    number: "",
   });
 
   const [editingId, setEditingId] = useState(null);
@@ -30,17 +29,17 @@ export default function BoothTab() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [boothRes, constituencyRes, blockRes] = await Promise.all([
-        getBooths(),
+      const [townRes, constituencyRes, blockRes] = await Promise.all([
+        getTowns(),
         getConstituencies(),
         getBlocks(),
       ]);
 
-      setRows(boothRes.data || []);
+      setRows(townRes.data || []);
       setConstituencies(constituencyRes.data || []);
       setBlocks(blockRes.data || []);
     } catch (err) {
-      console.error("Failed to load booth data", err);
+      console.error("Failed to load town data", err);
     } finally {
       setLoading(false);
     }
@@ -65,23 +64,28 @@ export default function BoothTab() {
     if (
       !formData.constituencynumber ||
       !formData.blocknumber ||
-      !formData.name.trim() ||
-      !formData.number
-    )
+      !formData.name.trim()
+    ) {
+      alert("Please select Constituency, Block and enter Town name");
       return;
+    }
+
+    const payload = {
+      name: formData.name,
+      constituencynumber: parseInt(formData.constituencynumber, 10),
+      blocknumber: parseInt(formData.blocknumber, 10),
+    };
+
+    if (isNaN(payload.blocknumber)) {
+      alert("Please select a block");
+      return;
+    }
 
     try {
-      const payload = {
-        name: formData.name,
-        number: Number(formData.number),
-        constituencynumber: Number(formData.constituencynumber),
-        blocknumber: Number(formData.blocknumber),
-      };
-
       if (editingId) {
-        await updateBooth(editingId, payload);
+        await updateTown(editingId, payload);
       } else {
-        await createBooth(payload);
+        await createTown(payload);
       }
 
       resetForm();
@@ -95,10 +99,10 @@ export default function BoothTab() {
      DELETE
   ====================== */
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this booth?")) return;
+    if (!window.confirm("Delete this town?")) return;
 
     try {
-      await deleteBooth(id);
+      await deleteTown(id);
       loadData();
     } catch {
       alert("Delete failed");
@@ -110,7 +114,6 @@ export default function BoothTab() {
       constituencynumber: "",
       blocknumber: "",
       name: "",
-      number: "",
     });
     setEditingId(null);
   };
@@ -131,10 +134,10 @@ export default function BoothTab() {
 
   return (
     <div className="card">
-      <h2>Booth</h2>
+      <h2>Town</h2>
       
       {loading ? (
-        <Loader message="Loading booths..." />
+        <Loader message="Loading towns..." />
       ) : (
         <>
           {/* ===== Manual Entry ===== */}
@@ -147,7 +150,7 @@ export default function BoothTab() {
             }}
           >
         <h3 style={{ marginBottom: "15px", fontSize: "16px" }}>
-          Add Booth Manually
+          Add Town Manually
         </h3>
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
@@ -188,22 +191,12 @@ export default function BoothTab() {
 
           <input
             type="text"
-            placeholder="Booth Name"
+            placeholder="Town Name"
             value={formData.name}
             onChange={(e) =>
               setFormData({ ...formData, name: e.target.value })
             }
             style={{ flex: 2 }}
-          />
-
-          <input
-            type="number"
-            placeholder="Booth Number"
-            value={formData.number}
-            onChange={(e) =>
-              setFormData({ ...formData, number: e.target.value })
-            }
-            style={{ flex: 1 }}
           />
 
           <button onClick={handleSave}>
@@ -222,15 +215,14 @@ export default function BoothTab() {
           <tr>
             <th>Constituency</th>
             <th>Block</th>
-            <th>Booth</th>
-            <th>Booth Number</th>
+            <th>Town</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan="5">No data</td>
+              <td colSpan="4">No data</td>
             </tr>
           ) : (
             rows.map((r) => (
@@ -238,7 +230,6 @@ export default function BoothTab() {
                 <td>{getConstituencyName(r.constituencynumber)}</td>
                 <td>{getBlockName(r.blocknumber)}</td>
                 <td>{r.name}</td>
-                <td>{r.number}</td>
                 <td>
                   <div
                     style={{
@@ -252,7 +243,6 @@ export default function BoothTab() {
                         setEditingId(r.id);
                         setFormData({
                           name: r.name,
-                          number: r.number,
                           constituencynumber: r.constituencynumber,
                           blocknumber: r.blocknumber,
                         });

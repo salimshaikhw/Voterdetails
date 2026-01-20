@@ -5,110 +5,134 @@ import axios from "axios";
 ========================= */
 
 const API = axios.create({
-  baseURL: "http://localhost:5084/api",
+  baseURL: "/api",
 });
 
-/* =========================
-   APPOINTMENT APIs
-========================= */
 
-// AppointmentRequests API removed — no remote dependency
 
 /* =========================
    CONSTITUENCY APIs
 ========================= */
 
-export const getConstituencies = () =>
-  API.get("/Constituency");
+// Constituency APIs
+export const getConstituencies = () => API.get("/Constituencies");
 
 export const createConstituency = (data) =>
-  API.post("/Constituency", data);
+  API.post("/Constituencies", data);
 
 export const updateConstituency = (id, data) =>
-  API.put(`/Constituency/${id}`, data);
+  API.put(`/Constituencies/${id}`, data);
 
 export const deleteConstituency = (id) =>
-  API.delete(`/Constituency/${id}`);
+  API.delete(`/Constituencies/${id}`);
+
+export const getConstituenciesByDistrict = (districtId) =>
+  API.get(`/Constituencies/by-district/${districtId}`);
+
 
 /* =========================
    BOOTH APIs
 ========================= */
 
 export const getBooths = () =>
-  API.get("/Booth");
+  API.get("/Booths");
 
 export const createBooth = (data) =>
-  API.post("/Booth", data);
+  API.post("/Booths", data);
 
 export const updateBooth = (id, data) =>
-  API.put(`/Booth/${id}`, data);
+  API.put(`/Booths/${id}`, data);
 
 export const deleteBooth = (id) =>
-  API.delete(`/Booth/${id}`);
+  API.delete(`/Booths/${id}`);
 
 /* =========================
    CENTER APIs
 ========================= */
 
 export const getCenters = () =>
-  API.get("/Center");
+  API.get("/Centers");
+
+export const getCentersWithTownMapping = () =>
+  API.get("/Centers/with-town-mapping");
 
 export const createCenter = (data) =>
-  API.post("/Center", data);
+  API.post("/Centers", data);
 
 export const updateCenter = (id, data) =>
-  API.put(`/Center/${id}`, data);
+  API.put(`/Centers/${id}`, data);
 
 export const deleteCenter = (id) =>
-  API.delete(`/Center/${id}`);
+  API.delete(`/Centers/${id}`);
 
 /* =========================
    SLOT TYPE APIs
 ========================= */
 
 export const getSlotTypes = () =>
-  API.get("/SlotType");
+  API.get("/Slotmasters");
 
 export const createSlotType = (data) =>
-  API.post("/SlotType", data);
+  API.post("/Slotmasters", data);
 
 export const updateSlotType = (id, data) =>
-  API.put(`/SlotType/${id}`, data);
+  API.put(`/Slotmasters/${id}`, data);
 
 export const deleteSlotType = (id) =>
-  API.delete(`/SlotType/${id}`);
+  API.delete(`/Slotmasters/${id}`);
 
 /* =========================
    SLOT APIs
 ========================= */
 
 export const getSlots = () =>
-  API.get("/Slot");
+  API.get("/Slotmasters");
 
 export const createSlot = (data) =>
-  API.post("/Slot", data);
+  API.post("/Slotmasters", data);
 
 export const updateSlot = (id, data) =>
-  API.put(`/Slot/${id}`, data);
+  API.put(`/Slotmasters/${id}`, data);
 
 export const deleteSlot = (id) =>
-  API.delete(`/Slot/${id}`);
+  API.delete(`/Slotmasters/${id}`);
 
 /* =========================
    HOLIDAY APIs
 ========================= */
 
 export const getHolidays = () =>
-  API.get("/Holiday");
+  API.get("/Holidays");
 
 export const createHoliday = (data) =>
-  API.post("/Holiday", data);
+  API.post("/Holidays", data);
 
 export const updateHoliday = (id, data) =>
-  API.put(`/Holiday/${id}`, data);
+  API.put(`/Holidays/${id}`, data);
 
 export const deleteHoliday = (id) =>
-  API.delete(`/Holiday/${id}`);
+  API.delete(`/Holidays/${id}`);
+
+/* =========================
+   ZONE APIs
+========================= */
+
+export const getZones = () =>
+  API.get("/Zones");
+
+export const createZone = (data) =>
+  API.post("/Zones", {
+    name: data.zonename
+  });
+
+export const updateZone = (id, data) =>
+  API.put(`/Zones/${id}`, {
+    name: data.zonename
+  });
+
+export const deleteZone = (id) =>
+  API.delete(`/Zones/${id}`);
+
 
 /* =========================
    UPLOAD API
@@ -128,13 +152,161 @@ export const uploadConstituencyData = async (file) => {
 ========================= */
 
 export const getFamilyBookings = () =>
-  API.get("/AppointmentBooking");
+  API.get("/Families");
 
 export const createFamilyBooking = (data) =>
-  API.post("/AppointmentBooking", data);
+  API.post("/Families", data);
 
 export const updateFamilyBooking = (id, data) =>
-  API.put(`/AppointmentBooking/${id}`, data);
+  API.put(`/Families/${id}`, data);
 
 export const deleteFamilyBooking = (id) =>
-  API.delete(`/AppointmentBooking/${id}`);
+  API.delete(`/Families/${id}`);
+
+/* =========================
+   FAMILY MEMBER APIs
+========================= */
+
+export const getFamilyMembers = () =>
+  API.get("/Familymembers");
+
+export const createFamilyMember = (data) =>
+  API.post("/Familymembers", data);
+
+export const updateFamilyMember = (id, data) =>
+  API.put(`/Familymembers/${id}`, data);
+
+export const deleteFamilyMember = (id) =>
+  API.delete(`/Familymembers/${id}`);
+
+/* =========================
+   FAMILY BOOKING APIs (SCREEN API)
+========================= */
+
+// This is the MAIN API for FamilyBookingTab screen
+export const getFamilyBookingsWithMembersAndBookings = () =>
+  API.get("/Families/with-members-and-bookings");
+
+
+/* =========================
+   DISTRICT APIs
+========================= */
+
+// DISTRICTS
+export const getDistricts = () => API.get("/Districts");
+
+export const getDistrictsByZone = (zoneId) =>
+  API.get(`/Districts/by-zone/${zoneId}`);
+
+export const createDistrict = (data) =>
+  API.post("/Districts", {
+    name: data.name,
+    zoneid: data.zoneid
+  });
+
+export const updateDistrict = (id, data) =>
+  API.put(`/Districts/${id}`, {
+    name: data.name,
+    zoneid: data.zoneid
+  });
+
+export const deleteDistrict = (id) =>
+  API.delete(`/Districts/${id}`);
+
+
+/* =========================
+   TOWN APIs
+========================= */
+
+export const getTowns = () =>
+  API.get("/Towns");
+
+export const createTown = (data) =>
+  API.post("/Towns", data);
+
+export const updateTown = (id, data) =>
+  API.put(`/Towns/${id}`, data);
+
+export const deleteTown = (id) =>
+  API.delete(`/Towns/${id}`);
+
+/* =========================
+   BLOCK APIs
+========================= */
+
+export const getBlocks = () =>
+  API.get("/Blocks");
+
+export const createBlock = (data) =>
+  API.post("/Blocks", data);
+
+export const updateBlock = (id, data) =>
+  API.put(`/Blocks/${id}`, data);
+
+export const deleteBlock = (id) =>
+  API.delete(`/Blocks/${id}`);
+
+/* =========================
+   BOOKING SLOT APIs
+========================= */
+
+export const getBookingSlots = () =>
+  API.get("/Bookingslots");
+
+export const createBookingSlot = (data) =>
+  API.post("/Bookingslots", data);
+
+export const updateBookingSlot = (id, data) =>
+  API.put(`/Bookingslots/${id}`, data);
+
+export const deleteBookingSlot = (id) =>
+  API.delete(`/Bookingslots/${id}`);
+
+/* =========================
+   REPORT APIs
+========================= */
+
+export const getAllBookings = (filters = {}) => {
+  const params = new URLSearchParams();
+  
+  // Pagination
+  if (filters.page) params.append('page', filters.page);
+  if (filters.pageSize) params.append('pageSize', filters.pageSize);
+  
+  // Filters
+  if (filters.zoneId) params.append('zoneId', filters.zoneId);
+  if (filters.districtId) params.append('districtId', filters.districtId);
+  if (filters.constituencyNumber) params.append('constituencyNumber', filters.constituencyNumber);
+  if (filters.boothNumber) params.append('boothNumber', filters.boothNumber);
+  if (filters.townId) params.append('townId', filters.townId);
+  if (filters.centerId) params.append('centerId', filters.centerId);
+  if (filters.karyakartaName) params.append('karyakartaName', filters.karyakartaName);
+  if (filters.karyakartaId) params.append('karyakartaId', filters.karyakartaId);
+  if (filters.timePeriod) params.append('timePeriod', filters.timePeriod);
+  if (filters.startDate) params.append('startDate', filters.startDate);
+  if (filters.endDate) params.append('endDate', filters.endDate);
+  if (filters.status) params.append('status', filters.status);
+  
+  return API.get(`/Reports/AllBookings?${params.toString()}`);
+};
+
+export const downloadExcelReport = (filters = {}) => {
+  const params = new URLSearchParams();
+  
+  if (filters.zoneId) params.append('zoneId', filters.zoneId);
+  if (filters.districtId) params.append('districtId', filters.districtId);
+  if (filters.constituencyNumber) params.append('constituencyNumber', filters.constituencyNumber);
+  if (filters.boothNumber) params.append('boothNumber', filters.boothNumber);
+  if (filters.townId) params.append('townId', filters.townId);
+  if (filters.centerId) params.append('centerId', filters.centerId);
+  if (filters.karyakartaName) params.append('karyakartaName', filters.karyakartaName);
+  if (filters.karyakartaId) params.append('karyakartaId', filters.karyakartaId);
+  if (filters.timePeriod) params.append('timePeriod', filters.timePeriod);
+  if (filters.startDate) params.append('startDate', filters.startDate);
+  if (filters.endDate) params.append('endDate', filters.endDate);
+  if (filters.status) params.append('status', filters.status);
+  
+  return API.get(`/Reports/DownloadExcel?${params.toString()}`, {
+    responseType: 'blob'
+  });
+};

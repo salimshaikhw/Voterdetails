@@ -7,8 +7,10 @@ import {
   getCenters,
   getSlotTypes,
 } from "../../services/api";
+import Loader from "../common/Loader";
 
 export default function SlotTimeSubTab() {
+  const [loading, setLoading] = useState(true);
   const [slots, setSlots] = useState([]);
   const [centers, setCenters] = useState([]);
   const [slotTypes, setSlotTypes] = useState([]);
@@ -26,6 +28,7 @@ export default function SlotTimeSubTab() {
      LOAD ALL DATA
   ====================== */
   const loadAll = async () => {
+    setLoading(true);
     try {
       const [slotRes, centerRes, slotTypeRes] = await Promise.all([
         getSlots(),
@@ -38,6 +41,8 @@ export default function SlotTimeSubTab() {
       setSlotTypes(slotTypeRes.data);
     } catch (err) {
       console.error("Failed to load Slot Time data", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,16 +122,20 @@ export default function SlotTimeSubTab() {
   return (
   <div className="card">
     <h3>Slot Time</h3>
-
-    {/* ===== Add / Update Slot Time ===== */}
-    <div
-      style={{
-        marginBottom: "20px",
-        padding: "15px",
-        border: "1px solid #ddd",
-        borderRadius: "5px",
-      }}
-    >
+    
+    {loading ? (
+      <Loader message="Loading slot times..." />
+    ) : (
+      <>
+        {/* ===== Add / Update Slot Time ===== */}
+        <div
+          style={{
+            marginBottom: "20px",
+            padding: "15px",
+            border: "1px solid #ddd",
+            borderRadius: "5px",
+          }}
+        >
       {/* Row 1: Center + Slot Type */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
         <select
@@ -306,6 +315,8 @@ export default function SlotTimeSubTab() {
         )}
       </tbody>
     </table>
+      </>
+    )}
   </div>
 );
 
