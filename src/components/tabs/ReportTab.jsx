@@ -137,6 +137,10 @@ export default function ReportTab() {
     setCurrentPage(1);
   };
 
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleQuickFilter = (period) => {
     setFilters(prev => ({ 
       ...prev, 
@@ -527,6 +531,8 @@ export default function ReportTab() {
                 <th>Gender</th>
                 <th>Contact</th>
                 <th>Family Head</th>
+                <th>Family UID</th>
+                <th>Family Member UID</th>
                 <th>CSC</th>
                 <th>YouthClubCor_Name</th>
                 <th>YouthClubCor_ContactNumber</th>
@@ -542,7 +548,7 @@ export default function ReportTab() {
             <tbody>
               {!Array.isArray(bookings) || bookings.length === 0 ? (
                 <tr>
-                  <td colSpan="16" style={{ textAlign: "center" }}>No bookings found</td>
+                  <td colSpan="18" style={{ textAlign: "center" }}>No bookings found</td>
                 </tr>
               ) : (
                 bookings.map((booking, index) => (
@@ -553,6 +559,8 @@ export default function ReportTab() {
                     <td>{booking.gender}</td>
                     <td>{booking.contactNumber}</td>
                     <td>{booking.familyHead}</td>
+                    <td>{booking.familyUID || ''}</td>
+                    <td>{booking.memberUID || ''}</td>
                     <td style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {booking.cscName}
                     </td>

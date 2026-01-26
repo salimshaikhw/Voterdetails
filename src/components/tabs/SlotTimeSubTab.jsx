@@ -1,95 +1,142 @@
 import { useEffect, useState } from "react";
 import {
-  getSlots,
-  createSlot,
-  updateSlot,
-  deleteSlot,
-  getCenters,
-  getSlotTypes,
+  getBookingSlots,
+  createBookingSlot,
+  updateBookingSlot,
+  deleteBookingSlot,
 } from "../../services/api";
 import Loader from "../common/Loader";
 
 export default function SlotTimeSubTab() {
   const [loading, setLoading] = useState(true);
   const [slots, setSlots] = useState([]);
-  const [centers, setCenters] = useState([]);
-  const [slotTypes, setSlotTypes] = useState([]);
 
-  const [centerId, setCenterId] = useState("");
-  const [slotTypeId, setSlotTypeId] = useState("");
+  const [name, setName] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [maxAppointment, setMaxAppointment] = useState("");
+  const [maxCount, setMaxCount] = useState("");
   const [isActive, setIsActive] = useState(true);
 
   const [editingId, setEditingId] = useState(null);
 
   /* ======================
-     LOAD ALL DATA
+     LOAD BOOKING SLOTS
   ====================== */
-  const loadAll = async () => {
+  const loadSlots = async () => {
     setLoading(true);
     try {
-      const [slotRes, centerRes, slotTypeRes] = await Promise.all([
-        getSlots(),
-        getCenters(),
-        getSlotTypes(),
-      ]);
-
-      setSlots(slotRes.data);
-      setCenters(centerRes.data);
-      setSlotTypes(slotTypeRes.data);
+      const res = await getBookingSlots();
+      setSlots(res.data || []);
     } catch (err) {
-      console.error("Failed to load Slot Time data", err);
+      console.error("Failed to load booking slots", err);
+      alert("Failed to load booking slots");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadAll();
+    loadSlots();
   }, []);
+
+  /* ======================
+     VALIDATE FORM
+  ====================== */
+  const validateForm = () => {
+    if (!startTime) {
+      alert("Start time is required");
+      return false;
+    }
+    if (!endTime) {
+      alert("End time is required");
+      return false;
+    }
+    if (!maxCount || maxCount < 1) {
+      alert("Max count must be at least 1");
+      return false;
+    }
+
+    // Validate end time is after start time
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    if (end <= start) {
+      alert("End time must be after start time");
+      return false;
+    }
+
+    return true;
+  };
+
+  /* ======================
+     FORMAT TIME FOR API
+  ====================== */
+  const formatTimeForApi = (timeInput) => {
+    // Convert "09:00" to "09:00:00"
+    if (timeInput && timeInput.length === 5) {
+      return `${timeInput}:00`;
+    }
+    return timeInput;
+  };
+
+  /* ======================
+     FORMAT TIME FOR DISPLAY
+  ====================== */
+  const formatTimeForDisplay = (timeString) => {
+    if (!timeString) return "";
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
 
   /* ======================
      ADD / UPDATE SLOT
   ====================== */
   const handleSave = async () => {
-    if (!centerId || !slotTypeId || !startTime || !endTime) return;
+    if (!validateForm()) return;
 
     const payload = {
-      centerId: Number(centerId),
-      slotTypeId: Number(slotTypeId),
-      startTime,
-      endTime,
-      maxAppointment: Number(maxAppointment),
+      name: name || undefined,
+      startTime: formatTimeForApi(startTime),
+      endTime: formatTimeForApi(endTime),
+      maxCount: Number(maxCount),
       isActive,
     };
 
+    if (editingId) {
+      payload.id = editingId;
+    }
+
     try {
       if (editingId) {
-        await updateSlot(editingId, payload);
+        await updateBookingSlot(editingId, payload);
       } else {
-        await createSlot(payload);
+        await createBookingSlot(payload);
       }
 
       resetForm();
-      loadAll();
-    } catch {
-      alert("Failed to save slot");
+      loadSlots();
+    } catch (err) {
+      console.error("Failed to save slot", err);
+      const errorMsg = err.response?.data?.detail || err.response?.data?.title || "Failed to save slot";
+      alert(errorMsg);
     }
   };
 
   /* ======================
      DELETE SLOT
   ====================== */
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this slot?")) return;
+  const handleDelete = async (id, slotName) => {
+    const confirmMsg = `Are you sure you want to delete "${slotName || 'this slot'}"?\n\nThis action cannot be undone and may affect existing bookings.`;
+    if (!confirm(confirmMsg)) return;
 
     try {
-      await deleteSlot(id);
-      loadAll();
-    } catch {
-      alert("Delete failed (slot may be in use)");
+      await deleteBookingSlot(id);
+      loadSlots();
+    } catch (err) {
+      console.error("Delete failed", err);
+      alert("Delete failed. This slot may have existing bookings.");
     }
   };
 
@@ -98,21 +145,20 @@ export default function SlotTimeSubTab() {
   ====================== */
   const handleEdit = (s) => {
     setEditingId(s.id);
-    setCenterId(String(s.centerId));
-    setSlotTypeId(String(s.slotTypeId));
-    setStartTime(s.startTime);
-    setEndTime(s.endTime);
-    setMaxAppointment(s.maxAppointment);
+    setName(s.name || "");
+    // Remove seconds from time for input field
+    setStartTime(s.startTime ? s.startTime.substring(0, 5) : "");
+    setEndTime(s.endTime ? s.endTime.substring(0, 5) : "");
+    setMaxCount(s.maxCount || "");
     setIsActive(s.isActive ?? true);
   };
 
   const resetForm = () => {
     setEditingId(null);
-    setCenterId("");
-    setSlotTypeId("");
+    setName("");
     setStartTime("");
     setEndTime("");
-    setMaxAppointment("");
+    setMaxCount("");
     setIsActive(true);
   };
 
@@ -121,203 +167,242 @@ export default function SlotTimeSubTab() {
   ====================== */
   return (
   <div className="card">
-    <h3>Slot Time</h3>
+    <h3>📅 Booking Slots Management</h3>
     
     {loading ? (
-      <Loader message="Loading slot times..." />
+      <Loader message="Loading booking slots..." />
     ) : (
       <>
-        {/* ===== Add / Update Slot Time ===== */}
+        {/* ===== Add / Update Booking Slot ===== */}
         <div
           style={{
             marginBottom: "20px",
-            padding: "15px",
-            border: "1px solid #ddd",
-            borderRadius: "5px",
+            padding: "20px",
+            border: "2px solid #e5e7eb",
+            borderRadius: "8px",
+            background: "#f8fafc",
           }}
         >
-      {/* Row 1: Center + Slot Type */}
-      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        <select
-          value={centerId}
-          onChange={(e) => setCenterId(e.target.value)}
-          style={{ flex: 1, padding: "8px" }}
-        >
-          <option value="">Select Center</option>
-          {centers.map((c) => {
-            const number = c.centerNumber ?? c.centerNo ?? c.number ?? c.id ?? "";
-            const name = c.name ?? c.centerName ?? "";
-            const label = number ? `${number} - ${name}` : name;
-            return (
-              <option key={c.id} value={c.id}>
-                {label}
-              </option>
-            );
-          })}
-        </select>
+          <h4 style={{ marginTop: 0, marginBottom: "15px", color: "#1e40af" }}>
+            {editingId ? "Edit Booking Slot" : "Create New Slot"}
+          </h4>
 
-        <select
-          value={slotTypeId}
-          disabled={!centerId}
-          onChange={(e) => setSlotTypeId(e.target.value)}
-          style={{ flex: 1, padding: "8px" }}
-        >
-          <option value="">Select Slot Type</option>
-          {slotTypes.map((t) => {
-            const number = t.slotTypeNumber ?? t.number ?? t.id ?? "";
-            const name = t.slotType1 ?? t.name ?? t.slotType ?? "";
-            const label = number ? `${number} - ${name}` : name;
-            return (
-              <option key={t.id} value={t.id}>
-                {label}
-              </option>
-            );
-          })}
-        </select>
-      </div>
+          {/* Row 1: Slot Name */}
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ display: "block", fontSize: "13px", marginBottom: "5px", fontWeight: "600", color: "#64748b" }}>
+              Slot Name (Optional)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., Morning Slot"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={{ width: "100%", padding: "10px", fontSize: "14px", borderRadius: "4px", border: "1px solid #ddd" }}
+            />
+          </div>
 
-      {/* Row 2: Start Time + End Time */}
-      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        <input
-          type="time"
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-          style={{ flex: 1, padding: "8px" }}
-        />
+          {/* Row 2: Start Time + End Time */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "13px", marginBottom: "5px", fontWeight: "600", color: "#64748b" }}>
+                Start Time <span style={{ color: "red" }}>*</span>
+              </label>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                style={{ width: "100%", padding: "10px", fontSize: "14px", borderRadius: "4px", border: "1px solid #ddd" }}
+                required
+              />
+            </div>
 
-        <input
-          type="time"
-          value={endTime}
-          onChange={(e) => setEndTime(e.target.value)}
-          style={{ flex: 1, padding: "8px" }}
-        />
-      </div>
+            <div>
+              <label style={{ display: "block", fontSize: "13px", marginBottom: "5px", fontWeight: "600", color: "#64748b" }}>
+                End Time <span style={{ color: "red" }}>*</span>
+              </label>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                style={{ width: "100%", padding: "10px", fontSize: "14px", borderRadius: "4px", border: "1px solid #ddd" }}
+                required
+              />
+            </div>
+          </div>
 
-      {/* Row 3: Capacity + Active + Buttons */}
-      <div
-        style={{
-          display: "flex",
-          gap: "15px",
-          alignItems: "center",
-        }}
-      >
-        <input
-          placeholder="Max Appointments"
-          value={maxAppointment}
-          onChange={(e) => setMaxAppointment(e.target.value)}
-          style={{ width: "180px", padding: "8px" }}
-        />
+          {/* Row 3: Max Count + Active */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "15px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "13px", marginBottom: "5px", fontWeight: "600", color: "#64748b" }}>
+                Maximum Bookings <span style={{ color: "red" }}>*</span>
+              </label>
+              <input
+                type="number"
+                placeholder="e.g., 50"
+                min="1"
+                value={maxCount}
+                onChange={(e) => setMaxCount(e.target.value)}
+                style={{ width: "100%", padding: "10px", fontSize: "14px", borderRadius: "4px", border: "1px solid #ddd" }}
+                required
+              />
+            </div>
 
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
-          />
-          Active
-        </label>
-
-        <button
-          onClick={handleSave}
-          style={{
-            padding: "8px 20px",
-            backgroundColor: "#007bff",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          {editingId ? "Update" : "Add"}
-        </button>
-
-        {editingId && (
-          <button
-            onClick={resetForm}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "#6c757d",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Cancel
-          </button>
-        )}
-      </div>
-    </div>
-
-    {/* ===== Slot Time Table ===== */}
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Center</th>
-          <th>Slot Type</th>
-          <th>Time</th>
-          <th>Capacity</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {slots.map((s) => (
-          <tr key={s.id}>
-            <td>{s.id}</td>
-            <td>{(() => {
-              const c = centers.find(c => c.id === s.centerId);
-              if (!c) return "-";
-              const number = c.centerNumber ?? c.centerNo ?? c.number ?? c.id ?? "";
-              const name = c.name ?? c.centerName ?? "";
-              return number ? `${number} - ${name}` : name || "-";
-            })()}</td>
-            <td>{(() => {
-              const t = slotTypes.find(t => t.id === s.slotTypeId);
-              if (!t) return "-";
-              const number = t.slotTypeNumber ?? t.number ?? t.id ?? "";
-              const name = t.slotType1 ?? t.name ?? t.slotType ?? "";
-              return number ? `${number} - ${name}` : name || "-";
-            })()}</td>
-            <td>
-              {s.startTime} - {s.endTime}
-            </td>
-            <td>{s.maxAppointment}</td>
-            <td>{s.isActive ? "Active" : "Inactive"}</td>
-            <td>
-              <button
-                onClick={() => handleEdit(s)}
-                style={{ marginRight: "8px" }}
+            <div>
+              <label style={{ display: "block", fontSize: "13px", marginBottom: "5px", fontWeight: "600", color: "#64748b" }}>
+                Status
+              </label>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px",
+                  cursor: "pointer",
+                }}
               >
-                Edit
-              </button>
+                <input
+                  type="checkbox"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                />
+                <span style={{ fontSize: "14px", fontWeight: "500" }}>Active</span>
+              </label>
+            </div>
+          </div>
 
-              <button onClick={() => handleDelete(s.id)}>
-                Delete
-              </button>
-            </td>
-          </tr>
-        ))}
+          {/* Buttons */}
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button
+              onClick={handleSave}
+              style={{
+                padding: "10px 24px",
+                backgroundColor: editingId ? "#28a745" : "#007bff",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "14px",
+              }}
+            >
+              {editingId ? "✓ Update Slot" : "+ Create Slot"}
+            </button>
 
-        {slots.length === 0 && (
-          <tr>
-            <td colSpan="7">No slots</td>
-          </tr>
-        )}
-      </tbody>
-    </table>
+            {editingId && (
+              <button
+                onClick={resetForm}
+                style={{
+                  padding: "10px 24px",
+                  backgroundColor: "#6c757d",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ===== Booking Slots Table ===== */}
+        <div style={{ overflowX: "auto" }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Slot Name</th>
+                <th>Time Period</th>
+                <th>Max Capacity</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {slots.map((s) => (
+                <tr key={s.id}>
+                  <td style={{ fontWeight: "600" }}>{s.name || `Slot ${s.id}`}</td>
+                  <td>
+                    <span style={{ whiteSpace: "nowrap" }}>
+                      {formatTimeForDisplay(s.startTime)} - {formatTimeForDisplay(s.endTime)}
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{ 
+                      padding: "4px 12px", 
+                      background: "#e3f2fd", 
+                      borderRadius: "12px",
+                      fontWeight: "600",
+                      color: "#1976d2"
+                    }}>
+                      {s.maxCount} bookings
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{
+                      padding: "4px 12px",
+                      borderRadius: "12px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      background: s.isActive ? "#d4edda" : "#f8d7da",
+                      color: s.isActive ? "#155724" : "#721c24"
+                    }}>
+                      {s.isActive ? "✓ Active" : "✗ Inactive"}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => handleEdit(s)}
+                      style={{ 
+                        marginRight: "8px",
+                        padding: "6px 12px",
+                        fontSize: "13px",
+                        background: "#007bff",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      Edit
+                    </button>
+
+                    <button 
+                      onClick={() => handleDelete(s.id, s.name)}
+                      style={{ 
+                        padding: "6px 12px",
+                        fontSize: "13px",
+                        background: "#dc3545",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {slots.length === 0 && (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "40px", color: "#6c757d" }}>
+                    No booking slots found. Create your first slot above.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </>
     )}
   </div>
 );
 
 }
+

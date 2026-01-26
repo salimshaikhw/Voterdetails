@@ -5,7 +5,7 @@ import axios from "axios";
 ========================= */
 
 const API = axios.create({
-  baseURL: "/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
 });
 
 
@@ -56,6 +56,9 @@ export const getCenters = () =>
 export const getCentersWithTownMapping = () =>
   API.get("/Centers/with-town-mapping");
 
+export const getCentersByTownId = (townId) =>
+  API.get(`/Centers/by-town/${townId}`);
+
 export const createCenter = (data) =>
   API.post("/Centers", data);
 
@@ -104,6 +107,34 @@ export const deleteSlot = (id) =>
 export const getHolidays = () =>
   API.get("/Holidays");
 
+export const getGlobalHolidays = () =>
+  API.get("/Holidays/global");
+
+export const getCenterHolidays = (cscId) =>
+  API.get(`/Holidays/center/${cscId}`);
+
+export const getTownHolidays = (townId) =>
+  API.get(`/Holidays/town/${townId}`);
+
+export const getSlotHolidays = (slotId) =>
+  API.get(`/Holidays/slot/${slotId}`);
+
+export const getConstituencyHolidays = (constituencyNumber) =>
+  API.get(`/Holidays/constituency/${constituencyNumber}`);
+
+export const checkIfHoliday = (params) => {
+  const queryParams = new URLSearchParams();
+  if (params.date) queryParams.append('date', params.date);
+  if (params.cscId) queryParams.append('cscId', params.cscId);
+  if (params.townId) queryParams.append('townId', params.townId);
+  if (params.slotId) queryParams.append('slotId', params.slotId);
+  if (params.constituencyNumber) queryParams.append('constituencyNumber', params.constituencyNumber);
+  return API.get(`/Holidays/check?${queryParams.toString()}`);
+};
+
+export const getHolidayById = (id) =>
+  API.get(`/Holidays/${id}`);
+
 export const createHoliday = (data) =>
   API.post("/Holidays", data);
 
@@ -112,6 +143,7 @@ export const updateHoliday = (id, data) =>
 
 export const deleteHoliday = (id) =>
   API.delete(`/Holidays/${id}`);
+
 
 /* =========================
    ZONE APIs
@@ -247,22 +279,6 @@ export const deleteBlock = (id) =>
   API.delete(`/Blocks/${id}`);
 
 /* =========================
-   BOOKING SLOT APIs
-========================= */
-
-export const getBookingSlots = () =>
-  API.get("/Bookingslots");
-
-export const createBookingSlot = (data) =>
-  API.post("/Bookingslots", data);
-
-export const updateBookingSlot = (id, data) =>
-  API.put(`/Bookingslots/${id}`, data);
-
-export const deleteBookingSlot = (id) =>
-  API.delete(`/Bookingslots/${id}`);
-
-/* =========================
    REPORT APIs
 ========================= */
 
@@ -310,3 +326,22 @@ export const downloadExcelReport = (filters = {}) => {
     responseType: 'blob'
   });
 };
+
+/* =========================
+   BOOKING SLOT APIs
+========================= */
+
+export const getBookingSlots = () =>
+  API.get("/Bookingslots");
+
+export const getBookingSlotById = (id) =>
+  API.get(`/Bookingslots/${id}`);
+
+export const createBookingSlot = (data) =>
+  API.post("/Bookingslots", data);
+
+export const updateBookingSlot = (id, data) =>
+  API.put(`/Bookingslots/${id}`, data);
+
+export const deleteBookingSlot = (id) =>
+  API.delete(`/Bookingslots/${id}`);

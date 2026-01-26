@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Frontend application
+  voterdetails-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voterdetails-frontend
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - voterdetails-network
+
+  # If you want to include the backend in the same docker-compose
+  # Uncomment and configure the following:
+  
+  # voterdetails-backend:
+  #   image: your-backend-image:latest
+  #   container_name: voterdetails-backend
+  #   ports:
+  #     - "5196:5196"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Production
+  #     - ConnectionStrings__DefaultConnection=your-connection-string
+  #   restart: unless-stopped
+  #   networks:
+  #     - voterdetails-network
+
+networks:
+  voterdetails-network:
+    driver: bridge
