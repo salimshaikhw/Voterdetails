@@ -18,14 +18,28 @@ export const registerUser = (data) =>
   API.post("/auth/register", data);
 
 import axios from "axios";
+import { getToken } from "./jwt";
 
 /* =========================
    AXIOS INSTANCE
 ========================= */
 
+
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
 });
+
+// Add a request interceptor to include JWT token
+API.interceptors.request.use(
+  (config) => {
+    const token = getToken();
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 
 
