@@ -1,3 +1,22 @@
+// Forgot Password
+export const forgotPasswordUser = (data) =>
+  API.post("/auth/forgot-password", data);
+// Email Confirmation
+export const confirmEmailUser = (data) =>
+  API.post("/auth/confirm-email", data);
+// Reset Password
+export const resetPasswordUser = (data) =>
+  API.post("/auth/reset-password", data);
+// =========================
+// AUTH APIs (JWT/Identity)
+// =========================
+
+export const loginUser = (data) =>
+  API.post("/auth/login", data);
+
+export const registerUser = (data) =>
+  API.post("/auth/register", data);
+
 import axios from "axios";
 
 /* =========================
